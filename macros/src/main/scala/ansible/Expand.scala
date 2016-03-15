@@ -1,18 +1,13 @@
 package ansible
 
-import java.nio.file._
-
-import monocle.syntax.fields
-
-import scala.annotation.{StaticAnnotation, compileTimeOnly}
-import scala.io.Source
-import scala.language.experimental.macros
-import scala.reflect.internal.Names
-import scala.reflect.macros.whitebox
+import ansible.AnsibleModule._
+import argonaut.Argonaut._
 import argonaut._
 import better.files._
-import Argonaut._
-import AnsibleModule._
+
+import scala.annotation.{StaticAnnotation, compileTimeOnly}
+import scala.language.experimental.macros
+import scala.reflect.macros.whitebox
 
 @compileTimeOnly("enable macro paradise to expand macro annotations")
 class expand extends StaticAnnotation {
@@ -48,12 +43,14 @@ object Expander {
       )
     }
 
+    def safeName(option: ModuleOption) =
+      if (reservedWords(option.name)) s"_${option.name}" else option.name
+
     def generateModule(m: AnsibleModule): (ModuleDef, ClassDef) = {
       val moduleTypeName = TypeName(camelize(m.name))
       val moduleTermName = TermName(camelize(m.name))
       val declarations = m.options.foldLeft((List.empty[ClassDef], List.empty[ModuleDef], List.empty[ValDef])) { case ((enumTypes, enumValues, fields), option) =>
-        val safeName = if (reservedWords(option.name)) s"_${option.name}" else option.name
-        val name = TermName(s"$safeName")
+        val name = TermName(s"${safeName(option)}")
         option match {
           case o: BooleanOption =>
             val field =
@@ -69,18 +66,30 @@ object Expander {
             (enumTypes, enumValues, field.asInstanceOf[ValDef] :: fields)
 
           case o: EnumOption =>
-            val optionTypeName = TypeName(camelize(safeName))
-            val optionTermName = TermName(camelize(safeName))
+            val camelName = camelize(safeName(option))
+            val optionTypeName = TypeName(camelName)
+            val optionTermName = TermName(camelName)
             val caseObjects = o.choices.map { n =>
               val termName = TermName(camelize(n))
-              q"case object $termName extends $optionTypeName"
+              q"""
+                  case object $termName extends $optionTypeName {
+                    override def id = $n
+                  }
+              """
             }
 
-            val newEnumType = q"sealed trait $optionTypeName".asInstanceOf[ClassDef]
+            val newEnumType = q"""
+              sealed trait $optionTypeName {
+                def id: String
+              }
+            """.asInstanceOf[ClassDef]
 
             val newEnumValues = q"""
                 object $optionTermName {
                   ..$caseObjects
+                  implicit val encoder: EncodeJson[$optionTypeName] = EncodeJson(o =>
+                    jString(o.id)
+                  )
                 }
             """.asInstanceOf[ModuleDef]
 
@@ -96,14 +105,30 @@ object Expander {
 
       val (enumTypes, enumValues, fields) = declarations
 
+      val assocList = m.options.map { o =>
+        val k = Literal(Constant(o.name))
+        val v = TermName(safeName(o))
+
+        q"""($k, o.$v.asJson)"""
+      }
+
       val objectDef = q"""
          object $moduleTermName {
+           implicit val encoder: EncodeJson[$moduleTypeName] = EncodeJson(o => {
+             val l: List[(String, Json)] = List(..$assocList)
+             val args: Json = jObjectAssocList(l.filterNot { case (_, v) => v.isNull })
+             jSingleObject(${m.name},
+               jSingleObject("args", args)
+             )
+           })
            ..$enumTypes
            ..$enumValues
          }
       """.asInstanceOf[ModuleDef]
 
-      val classDef = q"case class $moduleTypeName(..$fields)".asInstanceOf[ClassDef]
+      val classDef = q"""
+        case class $moduleTypeName(..$fields) extends ansible.Module
+       """.asInstanceOf[ClassDef]
 
       (objectDef, classDef)
     }
@@ -113,6 +138,9 @@ object Expander {
         val (objectDefs, classDefs) = ansibleModules.map(m => generateModule(m)).unzip
         c.Expr[Any](
           q"""
+             import argonaut._
+             import Argonaut._
+
              ..$objectDefs
              ..$classDefs
           """)
