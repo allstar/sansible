@@ -2,41 +2,30 @@ name := "sbt-ansible"
 
 version := "0.1.0"
 
-scalaVersion := "2.11.8"
+val scalaV = "2.11.7"
 
-val ansibleRepoUri = settingKey[String]("URI for the ansible-modules-core git repo")
-ansibleRepoUri := "git@github.com:ansible/ansible-modules-core.git"
+scalaVersion := scalaV
 
-val yamlExtractorScript = settingKey[File]("Path of Ruby YAML extractor script")
-yamlExtractorScript := baseDirectory.value / "bin" / "extract_annotations.rb"
+lazy val root =
+  (project in file(".")).
+    aggregate(macros, ansible)
 
-val fetchAnsibleSource = taskKey[Seq[File]]("Create some source files")
-fetchAnsibleSource := {
-  val s = streams.value
-  val targetDir = (resourceManaged in Compile).value / "ansible-src"
-  if (!targetDir.exists()) {
-    s.log.info(s"cloning ansible-modules-core repo from ${ansibleRepoUri.value}")
-    Process(s"git clone --depth=1 ${ansibleRepoUri.value} $targetDir") ! s.log
-  } else {
-    s.log.info(s"ansible-modules-core sources found at $targetDir")
-  }
-  Seq(targetDir)
-}
+lazy val commonSettings = Seq(
+  scalaVersion := scalaV,
+  scalacOptions += "-deprecation",
+  version := "1.0-SNAPSHOT",
+  organization := "com.citycontext",
+  libraryDependencies ++= Seq(
+    "io.argonaut" %% "argonaut" % "6.1"
+  ),
+  addCompilerPlugin(
+    "org.scalamacros" % "paradise_2.11.7" % "2.1.0"
+  )
+)
 
-val extractYamlAnnotations = TaskKey[Seq[File]]("Extract YAML annotations from ansible python modules")
-extractYamlAnnotations := {
-  val s = streams.value
-  val srcDir = fetchAnsibleSource.value.head
-  val targetDir = srcDir.getParentFile / "parsed_modules"
-  if (!targetDir.exists() || IO.listFiles(targetDir).isEmpty) {
-    IO.createDirectory(targetDir)
-    s.log.info(s"ruby ${yamlExtractorScript.value} $srcDir $targetDir")
-    Process(s"ruby ${yamlExtractorScript.value} $srcDir $targetDir") ! s.log
-  }
-  Seq(targetDir)
-}
+lazy val macros = (project in file("macros")).
+  settings(commonSettings: _*)
 
-val genResources = extractYamlAnnotations dependsOn fetchAnsibleSource
-
-resourceGenerators in Compile += genResources.taskValue
-
+lazy val ansible = (project in file("ansible")).
+  settings(commonSettings: _*).
+  dependsOn(macros)

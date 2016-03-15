@@ -36,7 +36,7 @@ Dir.glob("#{SRC_DIR}/**/*.py").reject { |path| path.end_with?("__init__.py") }.e
         module_def.merge!(package: package) 
         dir = File.join(TARGET_DIR, package)
         FileUtils.mkdir_p(dir)
-        File.open(File.join(dir, "#{module_name}.json"), 'w') { |f| f.write(module_def.to_json) }
+        File.open(File.join(dir, "#{module_name}.json"), 'w') { |f| f.write(JSON.pretty_generate(module_def)) }
       else
         $stderr.puts "Extracted malformed YAML for module #{path}"
       end
