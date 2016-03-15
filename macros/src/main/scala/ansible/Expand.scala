@@ -2,6 +2,8 @@ package ansible
 
 import java.nio.file._
 
+import monocle.syntax.fields
+
 import scala.annotation.{StaticAnnotation, compileTimeOnly}
 import scala.io.Source
 import scala.language.experimental.macros
@@ -46,23 +48,74 @@ object Expander {
       )
     }
 
-    def generateModule(m: AnsibleModule): c.Tree = {
-      val className = TypeName(camelize(m.name))
-      val fields = m.options.map { option =>
+    def generateModule(m: AnsibleModule): (ModuleDef, ClassDef) = {
+      val moduleTypeName = TypeName(camelize(m.name))
+      val moduleTermName = TermName(camelize(m.name))
+      val declarations = m.options.foldLeft((List.empty[ClassDef], List.empty[ModuleDef], List.empty[ValDef])) { case ((enumTypes, enumValues, fields), option) =>
         val safeName = if (reservedWords(option.name)) s"_${option.name}" else option.name
         val name = TermName(s"$safeName")
-        q"val $name: String"
+        option match {
+          case o: BooleanOption =>
+            val field =
+              if (o.required) q"val $name: Boolean"
+              else q"val $name: Option[Boolean] = None"
+
+            (enumTypes, enumValues, field.asInstanceOf[ValDef] :: fields)
+          case o: StringOption =>
+            val field =
+              if (o.required) q"val $name: String"
+              else q"val $name: Option[String] = None"
+
+            (enumTypes, enumValues, field.asInstanceOf[ValDef] :: fields)
+
+          case o: EnumOption =>
+            val optionTypeName = TypeName(camelize(safeName))
+            val optionTermName = TermName(camelize(safeName))
+            val caseObjects = o.choices.map { n =>
+              val termName = TermName(camelize(n))
+              q"case object $termName extends $optionTypeName"
+            }
+
+            val newEnumType = q"sealed trait $optionTypeName".asInstanceOf[ClassDef]
+
+            val newEnumValues = q"""
+                object $optionTermName {
+                  ..$caseObjects
+                }
+            """.asInstanceOf[ModuleDef]
+
+            val field =
+              if (o.required)
+                q"val $name: $moduleTermName.$optionTypeName"
+              else
+                q"val $name: Option[$moduleTermName.$optionTypeName] = None"
+
+            (newEnumType :: enumTypes, newEnumValues :: enumValues, field.asInstanceOf[ValDef] :: fields)
+        }
       }
 
-      q"""
-         case class $className(..$fields)
-       """
+      val (enumTypes, enumValues, fields) = declarations
+
+      val objectDef = q"""
+         object $moduleTermName {
+           ..$enumTypes
+           ..$enumValues
+         }
+      """.asInstanceOf[ModuleDef]
+
+      val classDef = q"case class $moduleTypeName(..$fields)".asInstanceOf[ClassDef]
+
+      (objectDef, classDef)
     }
 
     annottees.map(_.tree) match {
       case List(q"trait $_") =>
-        val caseClasses = ansibleModules.map(m => generateModule(m))
-        c.Expr[Any](q"..$caseClasses")
+        val (objectDefs, classDefs) = ansibleModules.map(m => generateModule(m)).unzip
+        c.Expr[Any](
+          q"""
+             ..$objectDefs
+             ..$classDefs
+          """)
       case _ =>
         c.abort(c.enclosingPosition, "@expand should annotate a trait")
     }
