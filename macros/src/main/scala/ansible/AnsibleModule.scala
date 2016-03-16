@@ -27,16 +27,21 @@ object AnsibleModule {
 
     val options = optionNames.map { name =>
       val o = c --\ name
+      val bool2str = (v: Boolean) => if (v) "yes" else "no"
 
       for {
         description <- (o --\ "description").as[List[String]].map(_.mkString("\n")) ||| (o --\ "description").as[String]
         required <- (o --\ "required").as[Boolean] ||| DecodeResult.ok(false)
-        choices <- (o --\ "choices").as[List[String]] ||| DecodeResult.ok(List[String]())
-      } yield choices.sorted match {
-        case Nil => StringOption(name, description, required)
-        case Seq("no", "yes") => BooleanOption(name, description, required)
-        case _ => EnumOption(name, description, required, choices)
+        choices <- (o --\ "choices").as[List[String]] |||
+                   (o --\ "choices").as[List[Boolean]].map(_.map(bool2str)) |||
+                    DecodeResult.ok(List[String]())
 
+      } yield choices.map(_.toLowerCase).sorted.distinct match {
+        case Nil => StringOption(name, description, required)
+        case Seq("no", "yes") =>
+          BooleanOption(name, description, required)
+        case _ =>
+          EnumOption(name, description, required, choices)
       }
     }
 
