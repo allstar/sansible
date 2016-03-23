@@ -6,42 +6,42 @@ import scala.language.experimental.macros
 import scala.reflect.macros.whitebox
 
 class CodeGen(c: whitebox.Context) {
-   val u = c.universe
-   import u._
+  val u = c.universe
+  import u._
 
-   private val s = new Sanitiser(c)
-   import s.safeName
+  private val s = new Sanitiser(c)
+  import s.safeName
 
-   def boolVal(o: BooleanOption): ValDef = {
-     val name = termName(o.name)
-     (if (o.required) q"val $name: Boolean"
-      else q"val $name: Option[Boolean] = None").asInstanceOf[ValDef]
-   }
+  def boolVal(o: BooleanOption): ValDef = {
+    val name = termName(o.name)
+    (if (o.required) q"val $name: Boolean"
+    else q"val $name: Option[Boolean] = None").asInstanceOf[ValDef]
+  }
 
-   def enumVal(o: EnumOption, moduleName: String): ValDef = {
-     val optionTypeName = typeName(camelize(o.name))
-     val moduleTermName = termName(camelize(moduleName))
-     val name = termName(o.name)
+  def enumVal(o: EnumOption, moduleName: String): ValDef = {
+    val optionTypeName = typeName(camelize(o.name))
+    val moduleTermName = termName(camelize(moduleName))
+    val name = termName(o.name)
 
-     (if (o.required)
-        q"val $name: $moduleTermName.$optionTypeName"
-      else
-        q"val $name: Option[$moduleTermName.$optionTypeName] = None").asInstanceOf[ValDef]
-   }
+    (if (o.required)
+      q"val $name: $moduleTermName.$optionTypeName"
+    else
+      q"val $name: Option[$moduleTermName.$optionTypeName] = None").asInstanceOf[ValDef]
+  }
 
-   def stringVal(o: StringOption): ValDef = {
-     val name = termName(o.name)
-     (if (o.required) q"val $name: String"
-      else q"val $name: Option[String] = None").asInstanceOf[ValDef]
-   }
+  def stringVal(o: StringOption): ValDef = {
+    val name = termName(o.name)
+    (if (o.required) q"val $name: String"
+    else q"val $name: Option[String] = None").asInstanceOf[ValDef]
+  }
 
-   def enumClassDef(o: EnumOption): ClassDef = {
-     q"""
+  def enumClassDef(o: EnumOption): ClassDef = {
+    q"""
        sealed trait ${typeName(camelize(o.name))} {
          def id: String
        }
      """.asInstanceOf[ClassDef]
-   }
+  }
 
   def enumObjectDef(o: EnumOption): ModuleDef = {
     val optionTermName = termName(camelize(o.name))
@@ -97,7 +97,6 @@ class CodeGen(c: whitebox.Context) {
       })
     """.asInstanceOf[ValDef]
   }
-
 
   private def camelize(str: String): String =
     str.split('_').map { s =>

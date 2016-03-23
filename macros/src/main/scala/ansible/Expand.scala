@@ -58,7 +58,9 @@ object Expander {
       """.asInstanceOf[ModuleDef]
 
       val classDef = q"""
-        case class $moduleTypeName(..$fields) extends ansible.Module
+        case class $moduleTypeName(..$fields) extends ansible.Module {
+          override def call = ModuleCall(this.asJson)
+        }
        """.asInstanceOf[ClassDef]
 
       (objectDef, classDef)

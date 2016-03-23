@@ -10,9 +10,13 @@ object AnsibleModule {
     def required: Boolean
   }
 
-  case class BooleanOption(name: String, description: String, required: Boolean) extends ModuleOption
+  case class BooleanOption(name: String,
+                           description: String,
+                           required: Boolean) extends ModuleOption
 
-  case class StringOption(name: String, description: String, required: Boolean) extends ModuleOption
+  case class StringOption(name: String,
+                          description: String,
+                          required: Boolean) extends ModuleOption
 
   case class EnumOption(name: String,
                         description: String,
@@ -67,4 +71,3 @@ import ansible.AnsibleModule._
 case class AnsibleModule(name: String,
                          description: List[String],
                          options: List[ModuleOption])
-

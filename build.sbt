@@ -16,7 +16,8 @@ lazy val commonSettings = Seq(
   version := "1.0-SNAPSHOT",
   organization := "com.citycontext",
   libraryDependencies ++= Seq(
-    "io.argonaut" %% "argonaut" % "6.1"
+    "io.argonaut" %% "argonaut" % "6.1",
+    "org.scalatest" %% "scalatest" % "2.2.6" % "test"
   ),
   addCompilerPlugin(
     "org.scalamacros" % "paradise_2.11.7" % "2.1.0"
