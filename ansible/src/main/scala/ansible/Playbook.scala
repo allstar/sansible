@@ -1,7 +1,7 @@
 package ansible
 
 import Inventory.HostPattern
-import Options.Serial
+import Options.{Serial, Become}
 
 object Playbook {
   case class Options(tags: Option[List[String]] = None,
@@ -9,6 +9,7 @@ object Playbook {
                      remoteUser: Option[String] = None,
                      anyErrorsFatal: Option[Boolean] = None,
                      serial: Option[Serial] = None,
+                     become: Option[Become] = None,
                      maxFailPercentage: Option[Int] = None,
                      connection: Option[String] = None) extends ansible.Options
 }

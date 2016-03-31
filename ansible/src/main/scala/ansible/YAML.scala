@@ -1,10 +1,13 @@
 package ansible
+
 import argonaut._
+import Argonaut._
+import JsonEncoders._
 
 object YAML {
-  def fromJSON(json: Json): String = {
-    "---\n" + go(json, 0)
-  }
+  def fromPlaybook(pb: Playbook): String = fromJSON(jArray(List(pb.asJson)))
+
+  def fromJSON(json: Json): String = "---\n" + go(json, 0)
 
   private def indent(indentLevel: Int) =
     " " * indentLevel * 2

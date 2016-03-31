@@ -1,6 +1,7 @@
 package ansible
 
 
+import ansible.Options.{Sudo, Become}
 import org.scalatest.FreeSpec
 import Modules._
 import Inventory._
@@ -19,17 +20,23 @@ class JsonEncodersSpec extends FreeSpec {
         hosts = List(HostPattern("example-host")),
         tasks = t1 :: t2 :: Nil,
         handlers = t3 :: Nil,
-        options = Playbook.Options(connection = Some("local")))
+        options = Playbook.Options(
+          connection = Some("local"),
+          become = Some(Become(None, method = Some(Sudo)))
+        )
+      )
 
       val json = Parse.parse("""{
           |  "hosts": ["example-host"],
           |  "connection": "local",
+          |  "become": true,
+          |  "become_method": "sudo",
           |  "tasks": [
-          |    {"name": "create foo/bar", "file": {"args": {"state": "file", "path": "/foo/bar"}}, "tags": ["tag1", "tag2"]},
-          |    {"name": "ping host", "ping": {"args": {}}, "notify": "reboot system"}
+          |    {"name": "create foo/bar", "file": {"state": "file", "path": "/foo/bar"}, "tags": ["tag1", "tag2"]},
+          |    {"name": "ping host", "ping": {}, "notify": "reboot system"}
           |  ],
           |  "handlers": [
-          |    {"name": "reboot system", "command": {"args": {"free_form": "reboot"}}}
+          |    {"name": "reboot system", "command": "reboot", "args": {}}
           |  ]
           |}""".stripMargin)
 

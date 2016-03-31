@@ -13,18 +13,18 @@ object JsonEncoders {
     })
 
   implicit val becomeEncode = EncodeJson((b: Become) => {
+    ("become_user" :?= b.user) ->?:
+    ("become_method" :?= b.method.map(_.id)) ->?:
     ("become" := true) ->:
-      ("become_user" := b.user) ->:
-      ("become_method" :?= b.method.map(_.id)) ->?:
-      jEmptyObject
+    jEmptyObject
   })
 
   implicit val commonOptionsEncode = EncodeJson((o: ansible.Options) =>
     ("serial" :?= o.serial) ->?:
-     ("tags" :?= o.tags) ->?:
-      ("env" :?= o.env) ->?:
-      ("remote_user" :?= o.remoteUser) ->?:
-      jEmptyObject
+    ("tags" :?= o.tags) ->?:
+    ("env" :?= o.env) ->?:
+    ("remote_user" :?= o.remoteUser) ->?:
+    merge(jEmptyObject, o.become.asJson)
   )
 
   implicit val playbookOptionsEncode = EncodeJson((o: Playbook.Options) => {
@@ -42,9 +42,9 @@ object JsonEncoders {
        ("notify" :?= o.notifyTask.map(_.name)) ->?:
        ("serial" :?= o.serial) ->?:
        ("async" :?= o.async) ->?:
-       ("pool" :?= o.pool) ->?:
+       ("poll" :?= o.poll) ->?:
        ("run_once" :?= o.runOnce) ->?:
-         merge(jEmptyObject, o.become.asJson)
+       jEmptyObject
 
      merge(common, task)
   })

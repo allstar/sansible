@@ -78,22 +78,31 @@ class CodeGen(c: whitebox.Context) {
   }
 
   def moduleObjectJsonEncoder(m: AnsibleModule): ValDef = {
+    val freeFormKey = "free_form"
     val moduleTypeName = TypeName(camelize(m.name))
     val moduleTermName = TermName(camelize(m.name))
 
-    val assocList = m.options.map { o =>
+    val assocList = m.options.filterNot(_.name == freeFormKey).map { o =>
       val k = Literal(Constant(o.name))
       val v = TermName(safeName(o.name))
       q"""($k, o.$v.asJson)"""
     }
+
+    val freeForm = m.options.find(_.name == freeFormKey).map { o =>
+      val v = TermName(safeName(o.name))
+      q"""(${m.name}, o.$v.asJson)"""
+    }
+
     q"""
       implicit val encoder: EncodeJson[$moduleTypeName] = EncodeJson(o => {
         val l: List[(String, Json)] = List(..$assocList)
         val args: Json = jObjectAssocList(l.filterNot { case (_, v) => v.isNull })
 
-        jSingleObject(${m.name},
-          jSingleObject("args", args)
-        )
+        $freeForm.map { case t: (String, Json) =>
+          t ->: jSingleObject("args", args)
+        } getOrElse {
+          jSingleObject(${m.name}, args)
+        }
       })
     """.asInstanceOf[ValDef]
   }
