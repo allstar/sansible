@@ -6,26 +6,22 @@ A type-safe DSL to generate and run Ansible playbooks directly from within Scala
 
 With its agentless architecture and its rich collection of built-in modules,
 Ansible provides a simple and effective solution for deploying software and provisioning
-infrastructure.
-
-However, as our Ansible code-base grew in both size and complexity, we found that managing a
-large collection of playbooks in plain YAML was far from ideal. So we set out to explore the
-possibility of using a statically typed language to generate and run our playbooks.
-We found that this approach provided several major benefits:
+infrastructure. However, as our Ansible code-base grew, we found that managing a
+large collection of playbooks in plain YAML was far from ideal. Instead, generating 
+playbooks in Scala has the following benefits:
 
 - Increased safety and quicker developer feedback, expecially with respect to variable
   scoping and allowed module parameters.
 - Full IDE Support, with autocompletion for module names and parameters.
-- Superior means of abstraction than the ones offered by Ansible: no need to learn
-  Ansible own loops syntax, variable scoping rules, jinja2 templates, includes, etc..
+- Superior means of abstraction: no need to learn Ansible's own control flow syntax, variable scoping rules, jinja2 templates, includes, etc..
   Just use Scala!
 
 ## Development
 
 Sansible heavily relies on a Scala macro to generate a collection of case classes
-(with their respective serialisation logic) from the ansible core modules' sources.
-The process involves a fair amount of data massaging (cloning git repositories,
-parsing YAML module annotations, applying some overrides, etc.). Ansible module annotations
+and their respective serialisation logic from the Ansible core modules' sources.
+The process involves a fair amount of data massaging, such as cloning git repositories,
+parsing YAML module annotations, applying some overrides, etc. Ansible module annotations
 are in fact intended for documentation purposes and are not expressed in
 a proper schema definition language.
 
