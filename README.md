@@ -38,7 +38,8 @@ publish the library in your local ivy2 cache by running `sbt ansible/publishLoca
 
 At this point, should be able to use the library in a separate project.
 
-```
+```scala
+
 package example.tasks
 
 import ansible.Modules.{Apt, User}
@@ -61,7 +62,7 @@ object Dependencies {
 ```
 
 Assuming we have defined an inventory and some tasks, we can now put them together in
-a playbook and run it with ansible.
+a playbook and run it with ansible (we are currently developing against v2.0.1.0).
 
 ```scala
 
