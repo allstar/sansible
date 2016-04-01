@@ -29,7 +29,11 @@ object Options {
   object Doas extends BecomeMethod {
     override def id = "doas"
   }
-  case class Become(user: Option[String], method: Option[BecomeMethod] = None)
+  case class Become(user: Option[String] = None, method: Option[BecomeMethod] = None)
+  object Become {
+    def apply(user: String): Become = Become(Some(user))
+    def apply(user: String, method: BecomeMethod): Become = Become(Some(user), Some(method))
+  }
 }
 
 import Options._

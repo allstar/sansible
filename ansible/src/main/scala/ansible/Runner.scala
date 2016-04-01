@@ -19,6 +19,7 @@ object Runner {
 
     invFile.write(inv.iniEncode)
     pbFile.write(YAML.fromPlaybook(pb))
+    println(cmd)
     Process(cmd, cwd = None, env: _*).run(pio)
   }
 }
