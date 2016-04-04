@@ -1,8 +1,10 @@
 package ansible
 
 import monocle.macros.GenLens
-import monocle._
-import Monocle._
+import monocle.function.{each,at}
+import monocle.std.map._
+import monocle.std.list._
+import monocle.{Traversal, Optional}
 
 object Inventory {
   type HostVars = Map[String, String]
@@ -23,40 +25,41 @@ object Inventory {
   case class Group(name: String,
                    hosts: List[HostId],
                    hostVars: HostVars = Map.empty,
-                   children: List[Group] = Nil) extends Item {
+                   children: List[Group] = Nil) extends Item
 
-    val hostnames = hosts.collect { case h: Hostname => h }
-    val hostPatterns = hosts.collect { case hp: HostPattern => hp }
-  }
-
-  object Lenses {
+  object Optics {
     val items = GenLens[Inventory](_.items)
 
-    val groups = Optional[Inventory, List[Group]](_.items.foldRight[Option[List[Group]]](None) {
-      case (g: Group, gs) => gs.map(g :: _)
-      case (_, gs) => gs
-    })(gs => (inv) => inv.copy(items = gs))
-
-    def group(n: String): Optional[List[Group], Group] = Optional[List[Group], Group](_.find(_.name == n))(g => gs =>
-      if (gs.contains(g)) gs else gs :+ g
-    )
-
-    val hostNames = Optional[Group,List[Hostname]](_.hosts.foldRight[Option[List[Hostname]]](None){
-      case (h: Hostname, hs) => hs.map(h :: _)
-      case (_, hs) => hs
-    })(hs => g => g.copy(hosts = g.hosts ++ hs))
+    val groupHosts = GenLens[Group](_.hosts)
 
     val hostnameVars = GenLens[Hostname](_.hostVars)
-    val groupVars = GenLens[Group](_.hostVars)
 
-    groups.composeOptional(group("foo")).composeOptional(hostNames)
+    val groupItem = Optional[Item, Group] {
+      case g: Group => Some(g)
+      case _ => None
+    }(g => _ =>  g)
 
+    val groups: Traversal[Inventory, Group] =
+      items.composeTraversal(each).composeOptional(groupItem)
+
+    val groupHostname = Optional[HostId, Hostname]{
+      case hn: Hostname => Some(hn)
+      case _ => None
+    }(hn => _ => hn)
+
+    val groupHostNames: Traversal[Group, Hostname] =
+      groupHosts.composeTraversal(each).composeOptional(groupHostname)
+
+    def groupName(name: String): Optional[Group, Group] =
+      Optional[Group, Group](g => if (g.name == name) Some(g) else None)(g => _ => g)
+
+    def groupHostVar(gName: String, vName: String): Traversal[Inventory, Option[String]] =
+      groups ^|-? groupName(gName) ^|->> groupHostNames ^|-> hostnameVars ^|-> at(vName)
   }
 }
 
 import Inventory._
 case class Inventory(items: List[Inventory.Item]) {
-  def group(name: String): Option[Group] = items.collectFirst {
-    case g: Group => g
-  }
+  def hostVarValues(gName: String, vName: String): List[String] =
+    Optics.groupHostVar(gName, vName).getAll(this).flatten
 }

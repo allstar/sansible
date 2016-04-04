@@ -4,7 +4,7 @@ version := "0.1.0"
 
 val scalaV = "2.11.7"
 
-val monocleV = "1.2.0"
+val monocleV = "1.1.0"
 
 scalaVersion := scalaV
 
