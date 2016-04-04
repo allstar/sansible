@@ -4,14 +4,12 @@ import Inventory._
 import IniEncode._
 
 object IniEncoders {
-  implicit val hostVars = new IniEncode[HostVars]  {
-    override def encode(o: HostVars): String =
-      o.toStringList.mkString(" ")
-  }
+  private def encodeVars(o: HostVars): String =
+    o.map { case (k, v) => s"$k=$v" }.mkString(" ")
 
   implicit val hostname = new IniEncode[Hostname] {
     override def encode(o: Hostname): String = {
-      val vars = if (o.hostVars.get.isEmpty) "" else " " + o.hostVars.iniEncode
+      val vars = if (o.hostVars.isEmpty) "" else " " + encodeVars(o.hostVars)
       o.id + o.port.fold("")(p => s":$p") + vars
     }
   }
@@ -36,8 +34,8 @@ object IniEncoders {
         else heading(o.name) :: o.hosts.map(_.iniEncode)
 
       val hostVars =
-        if (o.hostVars.get.isEmpty) Nil
-        else heading(s"${o.name}:vars") :: o.hostVars.toStringList
+        if (o.hostVars.isEmpty) Nil
+        else heading(s"${o.name}:vars") :: encodeVars(o.hostVars) :: Nil
 
       val children =
         if (o.children.isEmpty) Nil

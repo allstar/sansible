@@ -4,6 +4,8 @@ version := "0.1.0"
 
 val scalaV = "2.11.7"
 
+val monocleV = "1.2.0"
+
 scalaVersion := scalaV
 
 lazy val root =
@@ -17,6 +19,8 @@ lazy val commonSettings = Seq(
   organization := "com.citycontext",
   libraryDependencies ++= Seq(
     "io.argonaut" %% "argonaut" % "6.1",
+    "com.github.julien-truffaut"  %%  "monocle-core" %  monocleV,
+    "com.github.julien-truffaut"  %%  "monocle-macro" %  monocleV,
     "org.scalatest" %% "scalatest" % "2.2.6" % "test"
   ),
   addCompilerPlugin(

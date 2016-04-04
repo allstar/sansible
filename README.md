@@ -7,13 +7,13 @@ A type-safe DSL to generate and run Ansible playbooks directly from within Scala
 With its agentless architecture and its rich collection of built-in modules,
 Ansible provides a simple and effective solution for deploying software and provisioning
 infrastructure. However, as our Ansible code-base grew, we found that managing a
-large collection of playbooks in plain YAML was far from ideal. Instead, generating 
-playbooks in Scala has the following benefits:
+large collection of playbooks in plain YAML was far from ideal. Instead, using Ansible as an
+DSL embedded in Scala has the following benefits:
 
 - Increased safety and quicker developer feedback, expecially with respect to variable
   scoping and allowed module parameters.
 - Full IDE Support, with autocompletion for module names and parameters.
-- Superior means of abstraction: no need to learn Ansible's own control flow syntax, variable scoping rules, jinja2 templates, includes, etc..
+- Superior means of abstraction: no need to learn Ansible own control flow syntax, variable scoping rules, jinja2 templates, includes, etc..
   Just use Scala!
 
 ## Development
