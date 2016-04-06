@@ -1,10 +1,10 @@
 package ansible
 
 import monocle.macros.GenLens
-import monocle.function.{each,at}
+import monocle.function.{each, at}
 import monocle.std.map._
 import monocle.std.list._
-import monocle.{Traversal, Optional}
+import monocle.{Lens, Traversal, Optional}
 
 object Inventory {
   type HostVars = Map[String, String]
@@ -34,6 +34,9 @@ object Inventory {
 
     val hostnameVars = GenLens[Hostname](_.hostVars)
 
+    def hostVar(name: String): Lens[Hostname, Option[String]] =
+      hostnameVars ^|-> at(name)
+
     val groupItem = Optional[Item, Group] {
       case g: Group => Some(g)
       case _ => None
@@ -47,19 +50,30 @@ object Inventory {
       case _ => None
     }(hn => _ => hn)
 
+    def hostname(name: String): Optional[Hostname, Hostname] =
+      Optional[Hostname, Hostname](Some(_).filter(_.id == name))(hn => _ => hn)
+
     val groupHostNames: Traversal[Group, Hostname] =
-      groupHosts.composeTraversal(each).composeOptional(groupHostname)
+      groupHosts ^|->> each ^|-? groupHostname
 
     def groupName(name: String): Optional[Group, Group] =
-      Optional[Group, Group](g => if (g.name == name) Some(g) else None)(g => _ => g)
+      Optional[Group, Group](Some(_).filter(_.name == name))(g => _ => g)
 
     def groupHostVar(gName: String, vName: String): Traversal[Inventory, Option[String]] =
-      groups ^|-? groupName(gName) ^|->> groupHostNames ^|-> hostnameVars ^|-> at(vName)
+      groups ^|-? groupName(gName) ^|->> groupHostNames ^|-> hostVar(vName)
+
+    def groupHostVar(gName: String, hName: String, vName: String) =
+      groups ^|-? groupName(gName) ^|->> groupHostNames ^|-? hostname(hName) ^|-> hostVar(vName)
   }
 }
 
 import Inventory._
+import Optics._
+
 case class Inventory(items: List[Inventory.Item]) {
+  def withHostVar(gName: String, hName: String, kV: (String, String)): Inventory =
+    groupHostVar(gName, hName, kV._1).set(Some(kV._2))(this)
+
   def hostVarValues(gName: String, vName: String): List[String] =
-    Optics.groupHostVar(gName, vName).getAll(this).flatten
+    groupHostVar(gName, vName).getAll(this).flatten
 }
