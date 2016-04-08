@@ -4,7 +4,7 @@ import monocle.macros.GenLens
 import monocle.function.{each, at}
 import monocle.std.map._
 import monocle.std.list._
-import monocle._
+import monocle.{Optional, Lens, Traversal}
 
 object Inventory {
   type HostVars = Map[String, String]
@@ -74,13 +74,16 @@ object Inventory {
     val items = GenLens[Inventory](_.items)
 
     val groups: Traversal[Inventory, Group] =
-      items.composeTraversal(each).composeOptional(Item.Optics.group)
+      items ^|->> each ^|-? Item.Optics.group
 
     def groupVar(gName: String, vName: String): Traversal[Inventory, Option[String]] =
       groups ^|-? g.group(gName) ^|-> g.vars ^|-> at(vName)
 
     def groupVars(gName: String): Traversal[Inventory, HostVars] =
       groups ^|-? g.group(gName) ^|-> g.vars
+
+    def groupHostnames(gName: String): Traversal[Inventory, Hostname] =
+      groups ^|-? g.group(gName) ^|->> g.hostNames
 
     def groupHostVar(gName: String, vName: String): Traversal[Inventory, Option[String]] =
       groups ^|-? g.group(gName) ^|->> g.hostNames ^|-> id.hostVar(vName)
@@ -96,6 +99,9 @@ import Optics._
 case class Inventory(items: List[Inventory.Item]) {
   def withGroupVar(gName: String, kV: (String, String)): Inventory =
     groupVar(gName, kV._1).set(Some(kV._2))(this)
+
+  def groupHosts(gName: String): List[Hostname] =
+    groupHostnames(gName).getAll(this)
 
   def groupVars(gName: String): Option[HostVars] =
     Optics.groupVars(gName).getAll(this).headOption
