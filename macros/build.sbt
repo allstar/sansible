@@ -8,10 +8,10 @@ libraryDependencies ++= Seq(
 )
 
 val ansibleModulesRepoUri = settingKey[String]("URI for the ansible-modules-core git repo")
-ansibleModulesRepoUri := "git@github.com:ansible/ansible-modules-core.git"
+ansibleModulesRepoUri := "https://github.com/ansible/ansible-modules-core.git"
 
 val ansibleOverridesRepoUri = settingKey[String]("URI for the ansible git repo containing yaml doc overriedes")
-ansibleOverridesRepoUri := "git@github.com:ansible/ansible.git"
+ansibleOverridesRepoUri := "https://github.com/ansible/ansible.git"
 
 val yamlExtractorScript = settingKey[File]("Path of Ruby YAML extractor script")
 yamlExtractorScript := baseDirectory.value / "bin" / "extract_annotations.rb"
