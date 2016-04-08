@@ -1,4 +1,6 @@
 # Sansible
+[![Maven central](https://maven-badges.herokuapp.com/maven-central/com.citycontext/sansible_2.11/badge.png?style=plastic)](https://maven-badges.herokuapp.com/maven-central/com.citycontext/sansible_2.11)
+[![Build Status](https://travis-ci.org/citycontext/sansible.png)](https://travis-ci.org/citycontext/sansible)
 
 A type-safe DSL to generate and run Ansible playbooks directly from within Scala.
 
@@ -7,7 +9,7 @@ A type-safe DSL to generate and run Ansible playbooks directly from within Scala
 With its agentless architecture and its rich collection of built-in modules,
 Ansible provides a simple and effective solution for deploying software and provisioning
 infrastructure. However, as our Ansible code-base grew, we found that managing a
-large collection of playbooks in plain YAML was far from ideal. Instead, using Ansible as an
+large collection of playbooks in plain YAML was far from ideal. Instead, using Ansible as a
 DSL embedded in Scala has the following benefits:
 
 - Increased safety and quicker developer feedback, expecially with respect to variable
@@ -16,14 +18,13 @@ DSL embedded in Scala has the following benefits:
 - Superior means of abstraction: no need to learn Ansible own control flow syntax, variable scoping rules, jinja2 templates, includes, etc..
   Just use Scala!
 
-## Development
+## Install
 
-Sansible heavily relies on a Scala macro to generate a collection of case classes
-and their respective serialisation logic from the Ansible core modules' sources.
-The process involves a fair amount of data massaging, such as cloning git repositories,
-parsing YAML module annotations, applying some overrides, etc. Ansible module annotations
-are in fact intended for documentation purposes and are not expressed in
-a proper schema definition language.
+Add Sansible to your `build.sbt`:
+
+```scala
+libraryDependencies += "com.citycontext" %% "sansible" % version
+```
 
 ## Usage
 
@@ -51,8 +52,6 @@ object Dependencies {
     "install git",
     Apt(name = Some("git"), state = Some(Apt.State.present)))
 
-  ...
-
   val all = List(appUser, installGit)
 }
 ```
@@ -63,7 +62,6 @@ a playbook and run it with ansible (we are currently developing against v2.0.1.0
 ```scala
 
 import ansible.Inventory.HostPattern
-import ansible.Options.Become
 import ansible.{Playbook, Runner}
 import example.tasks._
 
@@ -79,6 +77,15 @@ object Example extends App {
 ```
 
 For a fully-working playbook example, please refer to the [sansible-examples](http://github.com/citycontext/sansible-examples) repo.
+
+## Development
+
+Sansible heavily relies on a Scala macro to generate a collection of case classes
+and their respective serialisation logic from the Ansible core modules' sources.
+The process involves a fair amount of data massaging, such as cloning git repositories,
+parsing YAML module annotations, applying some overrides, etc. Ansible module annotations
+are in fact intended for documentation purposes and are not expressed in
+a proper schema definition language.
 
 ## Project status
 
