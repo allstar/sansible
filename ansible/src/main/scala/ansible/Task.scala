@@ -1,9 +1,8 @@
 package ansible
 
-import Options.{Serial, Become}
+import ansible.CommonOptions.{Tag, Serial, Become}
 
 object Task {
-
   case class Options(retry: Option[Int] = None,
                      delegateTo: Option[Inventory.HostId] = None,
                      delegateFacts: Option[Boolean] = None,
@@ -15,14 +14,19 @@ object Task {
                      runOnce: Option[Boolean] = None,
                      remoteUser: Option[String] = None,
                      become: Option[Become] = None,
-                     tags: Option[List[String]] = None,
+                     tags: Option[Set[Tag]] = None,
                      connection: Option[String] = None,
-                     env: Option[Map[String, String]] = None) extends ansible.Options
+                     env: Option[Map[String, String]] = None)
 
   def apply(name: String, module: Module, options: Options = Options()): Task =
      Task(name, module.call, options)
 }
 
+import Task._
 case class Task(name: String,
                 module: ModuleCall,
-                options: Task.Options)
+                options: Task.Options) {
+
+  def modifyOptions(f: Options => Options) =
+    copy(options = f(options))
+}

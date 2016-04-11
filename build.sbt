@@ -21,11 +21,13 @@ lazy val commonSettings = Seq(
   ),
   addCompilerPlugin(
     "org.scalamacros" % "paradise_2.11.7" % "2.1.0"
-  )
-//  publishArtifact in (Compile, packageDoc) := false,
-//  publishArtifact in packageDoc := false,
-//  sources in (Compile,doc) := Seq.empty
+  ),
+  publishArtifact in (Compile, packageDoc) := false,
+  publishArtifact in packageDoc := false,
+  sources in (Compile,doc) := Seq.empty
 )
+
+releasePublishArtifactsAction := PgpKeys.publishSigned.value
 
 lazy val macros = (project in file("macros")).
   settings(commonSettings: _*)

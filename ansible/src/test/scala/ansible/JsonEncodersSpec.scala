@@ -1,19 +1,20 @@
 package ansible
 
-
-import ansible.Options.{Sudo, Become}
 import org.scalatest.FreeSpec
-import Modules._
-import Inventory._
 import argonaut._
 import Argonaut._
-import JsonEncoders._
+
+import Modules.{File, Command, Ping}
+import Inventory._
+import ansible.CommonOptions._
+import ansible.std._
+import ansible.dsl._
 
 class JsonEncodersSpec extends FreeSpec {
   "json encoders" - {
     "can serialise a playbook" in {
       val f = File(path="/foo/bar", state=Some(File.State.file))
-      val t1 = Task("create foo/bar", f, Task.Options(tags = Some(List("tag1", "tag2"))))
+      val t1 = Task("create foo/bar", f).withTags("tag1", "tag2")
       val t3 = Task("reboot system", Command("reboot"))
       val t2 = Task("ping host", Ping(), Task.Options(notifyTask = Some(t3)))
       val pb = Playbook(
@@ -21,10 +22,9 @@ class JsonEncodersSpec extends FreeSpec {
         tasks = t1 :: t2 :: Nil,
         handlers = t3 :: Nil,
         options = Playbook.Options(
-          connection = Some("local"),
-          become = Some(Become(None, method = Some(Sudo)))
+          connection = Some("local")
         )
-      )
+      ).usingSudo
 
       val json = Parse.parse("""{
           |  "hosts": ["example-host"],

@@ -1,11 +1,12 @@
-package ansible
+package ansible.std
 
-import ansible.Task._
-import ansible.Options._
+import ansible.CommonOptions._
+import ansible.{CommonOptions => CommonOpt, Playbook, Task}
 import argonaut.Argonaut._
 import argonaut._
 
-object JsonEncoders {
+trait JsonEncoders {
+  implicit val tagEncode = EncodeJson((t: Tag) => jString(t.name))
   implicit val serialEncode = EncodeJson((s: Serial) =>
     s match {
       case HostNumber(n) => jNumber(n)
@@ -19,22 +20,22 @@ object JsonEncoders {
     jEmptyObject
   })
 
-  implicit val commonOptionsEncode = EncodeJson((o: ansible.Options) =>
-    ("serial" :?= o.serial) ->?:
-    ("tags" :?= o.tags) ->?:
-    ("env" :?= o.env) ->?:
-    ("remote_user" :?= o.remoteUser) ->?:
-    merge(jEmptyObject, o.become.asJson)
-  )
+  implicit def commonOptionsEncode[T: CommonOpt]: EncodeJson[T] = EncodeJson((o: T) => {
+    val ev = implicitly[CommonOpt[T]]
+    ("serial" :?= ev.serial(o)) ->?:
+    ("tags" :?= ev.tags(o)) ->?:
+    ("env" :?= ev.env(o)) ->?:
+    ("remote_user" :?= ev.remoteUser(o)) ->?:
+    merge(jEmptyObject, ev.become(o).asJson)
+  })
 
-  implicit val playbookOptionsEncode = EncodeJson((o: Playbook.Options) => {
-    val common = o.asInstanceOf[ansible.Options].asJson
+
+  implicit def playbookOptionsEncode: EncodeJson[Playbook.Options] = EncodeJson((o: Playbook.Options) => {
     ("connection" :?= o.connection) ->?:
-      common
+      commonOptionsEncode[Playbook.Options].encode(o)
   })
 
   implicit val optionsEncode = EncodeJson((o: Task.Options) => {
-     val common = o.asInstanceOf[ansible.Options].asJson
      val task =
        ("retry" :?= o.retry) ->?:
        ("delegate_to" :?= o.delegateTo.map(_.id)) ->?:
@@ -46,7 +47,7 @@ object JsonEncoders {
        ("run_once" :?= o.runOnce) ->?:
        jEmptyObject
 
-     merge(common, task)
+     merge(commonOptionsEncode[Task.Options].encode(o), task)
   })
 
   private def merge(j1: Json, j2: Json): Json = (j1.obj, j2.obj) match {

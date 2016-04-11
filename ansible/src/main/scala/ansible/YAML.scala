@@ -2,7 +2,8 @@ package ansible
 
 import argonaut._
 import Argonaut._
-import JsonEncoders._
+
+import ansible.std._
 
 object YAML {
   def fromPlaybook(pb: Playbook): String = fromJSON(jArray(List(pb.asJson)))

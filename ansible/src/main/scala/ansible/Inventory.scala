@@ -6,6 +6,8 @@ import monocle.std.map._
 import monocle.std.list._
 import monocle.{Optional, Lens, Traversal}
 
+import CommonOptions.AnsibleId
+
 object Inventory {
   type HostVars = Map[String, String]
 
