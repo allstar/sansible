@@ -70,4 +70,7 @@ import ansible.AnsibleModule._
 
 case class AnsibleModule(name: String,
                          description: List[String],
-                         options: List[ModuleOption])
+                         options: List[ModuleOption]) {
+
+  val enumOptions = options.collect { case o: EnumOption if !o.required => o }
+}

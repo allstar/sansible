@@ -18,7 +18,7 @@ DSL embedded in Scala has the following benefits:
 - Superior means of abstraction: no need to learn Ansible own control flow syntax, variable scoping rules, jinja2 templates, includes, etc..
   Just use Scala!
 
-## Install
+## Usage
 
 Add Sansible to your `build.sbt`:
 
@@ -26,14 +26,8 @@ Add Sansible to your `build.sbt`:
 libraryDependencies += "com.citycontext" %% "sansible" % version
 ```
 
-## Usage
-
-First build the library by running `sbt compile`. You will need a recent version
-of Ruby installed, as we require it for pre-processing Ansible source annotations
-(sadly we couldn't find any decent way to parse YAML in Scala). Once built, you can
-publish the library in your local ivy2 cache by running `sbt ansible/publishLocal`.
-
-At this point, should be able to use the library in a separate project.
+Break your provisioning code into packages and modules, exactly as you do for your
+scala projects.
 
 ```scala
 
@@ -41,18 +35,21 @@ package example.tasks
 
 import ansible.Modules.{Apt, User}
 import ansible.Task
-import example.Conf.appName
+import ansible.std._
+import ansible.dsl._
+import example.Conf.appUsername
 
 object Dependencies {
    val appUser = Task(s"create user $appName",
-    User(appName, state = Some(User.State.present))
+    User(appUsername).withState(User.State.present)
   )
 
   val installGit = Task(
     "install git",
-    Apt(name = Some("git"), state = Some(Apt.State.present)))
+    Apt(name = Some("git")).withState(Apt.State.latest)
+  )
 
-  val all = List(appUser, installGit)
+  val all = List(appUser, installGit).map(_.withTags("dependencies", "apt"))
 }
 ```
 
@@ -63,24 +60,28 @@ a playbook and run it with ansible (we are currently developing against v2.0.1.0
 
 import ansible.Inventory.HostPattern
 import ansible.{Playbook, Runner}
+import ansible.std._
+import ansible.dsl._
 import example.tasks._
 
 object Example extends App {
   val playbook = Playbook(
     hosts = List(HostPattern(Inventory.Groups.web.name)),
     tasks = Dependencies.all ++ App.all
-  )
+  ).withEnv(Map(
+     "http_proxy" -> "http://proxy.example.com:8080"
+  ))
 
   Runner.runPlaybook(Inventory.default)(playbook)
 }
 
 ```
 
-For a fully-working playbook example, please refer to the [sansible-examples](http://github.com/citycontext/sansible-examples) repo.
+For fully-working playbook examples, please refer to the [sansible-examples](http://github.com/citycontext/sansible-examples) repo.
 
 ## Development
 
-Sansible heavily relies on a Scala macro to generate a collection of case classes
+Sansible relies on a Ruby script and a Scala macro to generate a collection of case classes
 and their respective serialisation logic from the Ansible core modules' sources.
 The process involves a fair amount of data massaging, such as cloning git repositories,
 parsing YAML module annotations, applying some overrides, etc. Ansible module annotations

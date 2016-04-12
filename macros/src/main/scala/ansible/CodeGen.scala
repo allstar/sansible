@@ -5,6 +5,12 @@ import ansible.AnsibleModule.{EnumOption, StringOption, BooleanOption}
 import scala.language.experimental.macros
 import scala.reflect.macros.whitebox
 
+object CodeGen {
+  val FreeFormKey = "free_form"
+}
+
+
+import CodeGen._
 class CodeGen(c: whitebox.Context) {
   val u = c.universe
   import u._
@@ -77,18 +83,30 @@ class CodeGen(c: whitebox.Context) {
     """.asInstanceOf[ModuleDef]
   }
 
+  def enumSetterDef(moduleName: String)(o: EnumOption): DefDef = {
+    val moduleTypeName = typeName(camelize(moduleName))
+    val moduleTermName = termName(camelize(moduleName))
+    val methodName = termName(s"with${camelize(o.name)}")
+    val argType = typeName(camelize(o.name))
+    val argName = termName(o.name)
+
+    q"""
+     def $methodName(v: $moduleTermName.$argType): $moduleTypeName =
+       this.copy($argName = Some(v))
+     """.asInstanceOf[DefDef]
+  }
+
   def moduleObjectJsonEncoder(m: AnsibleModule): ValDef = {
-    val freeFormKey = "free_form"
     val moduleTypeName = TypeName(camelize(m.name))
     val moduleTermName = TermName(camelize(m.name))
 
-    val assocList = m.options.filterNot(_.name == freeFormKey).map { o =>
+    val assocList = m.options.filterNot(_.name == FreeFormKey).map { o =>
       val k = Literal(Constant(o.name))
       val v = TermName(safeName(o.name))
       q"""($k, o.$v.asJson)"""
     }
 
-    val freeForm = m.options.find(_.name == freeFormKey).map { o =>
+    val freeForm = m.options.find(_.name == FreeFormKey).map { o =>
       val v = TermName(safeName(o.name))
       q"""(${m.name}, o.$v.asJson)"""
     }

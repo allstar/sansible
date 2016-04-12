@@ -49,6 +49,8 @@ object Expander {
 
       val jsonEncoderVal = gen.moduleObjectJsonEncoder(m).asInstanceOf[ValDef]
 
+      val enumSetters = m.enumOptions.map(gen.enumSetterDef(m.name)).asInstanceOf[List[DefDef]]
+
       val objectDef = q"""
          object $moduleTermName {
            $jsonEncoderVal
@@ -57,9 +59,11 @@ object Expander {
          }
       """.asInstanceOf[ModuleDef]
 
+
       val classDef = q"""
         case class $moduleTypeName(..$fields) extends ansible.Module {
           override def call = ModuleCall(this.asJson)
+          ..$enumSetters
         }
        """.asInstanceOf[ClassDef]
 

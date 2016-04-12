@@ -24,10 +24,9 @@ lazy val commonSettings = Seq(
   ),
   publishArtifact in (Compile, packageDoc) := false,
   publishArtifact in packageDoc := false,
-  sources in (Compile,doc) := Seq.empty
+  sources in (Compile,doc) := Seq.empty,
+  releasePublishArtifactsAction := PgpKeys.publishSigned.value
 )
-
-releasePublishArtifactsAction := PgpKeys.publishSigned.value
 
 lazy val macros = (project in file("macros")).
   settings(commonSettings: _*)
