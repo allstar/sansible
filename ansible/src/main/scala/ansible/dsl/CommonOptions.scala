@@ -3,7 +3,7 @@ package ansible.dsl
 import ansible.CommonOptions._
 
 trait CommonOptions {
-  implicit class CommonOptionsSyntax[T, O](t: T)(implicit o: Optics[T, O]) {
+  implicit class Syntax[T, O](t: T)(implicit o: Optics[T, O]) {
     def tags = o.tags.getOption(t)
 
     def env = o.env.getOption(t)
@@ -35,6 +35,4 @@ trait CommonOptions {
     def becoming(user: String, m: BecomeMethod = Sudo): T =
       o.become.set(Become(Some(user), Some(m)))(t)
   }
-
-  implicit def str2tag(s: String): Tag = Tag(s)
 }

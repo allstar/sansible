@@ -12,9 +12,9 @@ infrastructure. However, as our Ansible code-base grew, we found that managing a
 large collection of playbooks in plain YAML was far from ideal. Instead, using Ansible as a
 DSL embedded in Scala has the following benefits:
 
-- Increased safety and quicker developer feedback, expecially with respect to variable
+- Increased safety and quicker developer feedback, especially with respect to variable
   scoping and allowed module parameters.
-- Full IDE Support, with autocompletion for module names and parameters.
+- Full IDE Support, with auto-completion for module names and parameters.
 - Superior means of abstraction: no need to learn Ansible own control flow syntax, variable scoping rules, jinja2 templates, includes, etc..
   Just use Scala!
 
@@ -35,24 +35,20 @@ package example.tasks
 
 import ansible.Modules.{Apt, User}
 import ansible.Task
-import ansible.std._
-import ansible.dsl._
 import example.Conf.appUsername
 
 object Dependencies {
-   val appUser = Task(s"create user $appName",
+   val appUser = Task(s"create user $appUsername",
     User(appUsername).withState(User.State.present)
   )
 
-  val installGit = Task(
-    "install git",
+  val installGit = Task("install git",
     Apt(name = Some("git")).withState(Apt.State.latest)
   )
 
-  val all = List(appUser, installGit).map(_.withTags("dependencies", "apt"))
+  val all = List(appUser, installGit)
 }
 ```
-
 Assuming we have defined an inventory and some tasks, we can now put them together in
 a playbook and run it with ansible (we are currently developing against v2.0.1.0).
 
@@ -60,24 +56,81 @@ a playbook and run it with ansible (we are currently developing against v2.0.1.0
 
 import ansible.Inventory.HostPattern
 import ansible.{Playbook, Runner}
-import ansible.std._
-import ansible.dsl._
 import example.tasks._
 
 object Example extends App {
   val playbook = Playbook(
     hosts = List(HostPattern(Inventory.Groups.web.name)),
-    tasks = Dependencies.all ++ App.all
-  ).withEnv(Map(
-     "http_proxy" -> "http://proxy.example.com:8080"
-  ))
-
+    tasks = Dependencies.all
+  )
   Runner.runPlaybook(Inventory.default)(playbook)
 }
-
 ```
 
-For fully-working playbook examples, please refer to the [sansible-examples](http://github.com/citycontext/sansible-examples) repo.
+For some fully working playbook examples, please refer to the [sansible-examples](http://github.com/citycontext/sansible-examples) repo on Github.
+
+### Generated module code
+
+The library provides auto-generated case classes for each Ansible module defined in the [ansible-modules-core](https://github.com/ansible/ansible-modules-core) repository.
+Additionally, we generate a sealed sum type for each enumerable module option. For instance, for the [service](http://docs.ansible.com/ansible/service_module.html) module's **state** option,
+we generate the following Scala code
+
+```scala
+
+object Service {
+  sealed trait State
+
+  object State {
+    case object Started extends State
+    case object Stopped extends State
+    case object Restarted extends State
+    case object Reloaded extends State
+
+    val started: State = Started
+    val stopped: State = Stopped
+    val restarted: State = Stopped
+    val reloaded: State = Reloaded
+  }
+}
+```
+A service task, can now be defined by calling Service's `apply` method with the desired arguments:
+
+```scala
+val esRestart = Task("restart elasticsearch", Service("elasticsearch",
+  state = Some(Service.State.restarted),
+)
+```
+Notice that, unless a module argument is explicitly marked as required in the Ansible documentation,
+we have to represent it in Sansible as a Scala `Option`. In order to mitigate the additional boilerplate
+that this introduces, we provide an auto-generated setter method for each non-mandatory enumerable field.
+This allows to re-write the service module call above as follows:
+
+```scala
+Service("elasticsearch").withState(Service.State.restarted)
+```
+
+### Common options DSL
+
+A number of Ansible options are equally applicable to both tasks and playbooks.
+These includes, among others, things like tags, environment variables, serial execution,
+and privilege escalation. In order to use the DSL, you will need to import implicits from both
+`ansible.std._` and `ansible.dsl._`.
+
+```scala
+import ansible.{Task, Playbook}
+import ansible.Modules.GetUrl
+import ansible.std._
+import ansible.dsl._
+
+val downloadApp = Task("Download app jar", GetUrl(
+  url = "http://example.com/jars/app.jar",
+  dest = "/home/appUser/app"
+)).becoming("appUser").withTags("tag1", "tag2")
+
+```
+For an overview of the methods currently implemented, refer to the implicit class
+`ansible.dsl.CommonOptions.Syntax`, which will be in scope for both playbook and
+task objects.
 
 ## Development
 
