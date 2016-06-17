@@ -1,4 +1,4 @@
-val scalaV = "2.11.7"
+val scalaV = "2.11.8"
 
 val monocleV = "1.1.0"
 
@@ -11,7 +11,6 @@ lazy val root =
 lazy val commonSettings = Seq(
   scalaVersion := scalaV,
   scalacOptions += "-deprecation",
-  version := "1.0-SNAPSHOT",
   organization := "com.citycontext",
   libraryDependencies ++= Seq(
     "io.argonaut" %% "argonaut" % "6.1",
