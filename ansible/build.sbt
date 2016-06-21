@@ -2,8 +2,6 @@ name := "sansible"
 
 organization := "com.citycontext"
 
-version := "0.1.2"
-
 description := "Type-safe Scala DSL for working with Ansible playbooks and inventories"
 
 publishMavenStyle := true
