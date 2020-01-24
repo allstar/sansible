@@ -3,6 +3,7 @@
 [![Build Status](https://travis-ci.org/citycontext/sansible.png)](https://travis-ci.org/citycontext/sansible)
 
 A type-safe DSL to generate and run Ansible playbooks directly from within Scala.
+<!> *UNMAINTAINED* <!>
 
 ## Motivation
 
